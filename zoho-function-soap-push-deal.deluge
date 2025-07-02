@@ -46,7 +46,7 @@ void automation.pushDealRecord_ToDatamate(int id)
         // Send SOAP request
         response = invokeurl
         [
-            url : "https://purplekeys.in/CarmeliaHeaven_test/OTAbookingsUpdate.aspx"
+            url : ""
             type : POST
             parameters : paramString_1
             headers : headerMap
