@@ -1,0 +1,73 @@
+// ===================================================================
+// Deluge Function: pushDealRecord_ToDatamate
+// Description:
+//   - Fetches Deal record by ID
+//   - Prepares SOAP payload
+//   - Sends booking data to external system via SOAP POST
+//   - Parses & logs response
+// ===================================================================
+
+void automation.pushDealRecord_ToDatamate(int id)
+{
+    // Fetch Deal record
+    dealRec = zoho.crm.getRecordById("Deals", id);
+
+    if(dealRec != null)
+    {
+        // Extract fields safely
+        name = ifnull(dealRec.get("Deal_Name"), "");
+        phone = ifnull(dealRec.get("Phone"), "");
+        email = ifnull(dealRec.get("Email"), "");
+        bookingDate = ifnull(dealRec.get("Booking_Date"), "");
+        amount = ifnull(dealRec.get("Amount"), "0");
+        numberOfPax = ifnull(dealRec.get("Number_of_Persons"), "0");
+
+        // SOAP headers (no auth needed here)
+        headerMap = Map();
+        headerMap.put("SOAPAction", "\"\"");
+        headerMap.put("Content-Type", "application/xml");
+
+        // SOAP XML payload (accessKey passed inside body)
+        paramString_1 = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">"
+        + "<soapenv:Header/>"
+        + "<soapenv:Body>"
+        + "<BookingRequest accessKey=\"DM25092024SROUTE9095AXIS\">"
+        + "<GuestDetails Title=\"\" GuestName=\"" + name + "\" EmailId=\"" + email + "\" MobileNo=\"" + phone + "\"/>"
+        + "<CheckinDetails CheckInDateTime=\"12/04/2025 00:00\" CheckOutDateTime=\"14/04/2025 00:00\" TotalPax=\""+numberOfPax+"\" Children=\"0\" Amount=\"" + amount + "\" Taxes=\"947\" TotalAmount=\"8845\" CancelledDate=\"\"/>"
+        + "<BookingDetails HotelID=\"9095\" BookingNo=\"0145396672\" BookingDate=\"" + bookingDate + "\" BookedBy=\"" + name + "\" OTA=\"ZOHO\" BookingStatus=\"Confirmed\" AllInclusiveRates=\"Yes\" Instructions=\"\"/>"
+        + "<Rates>"
+        + "<RoomType ID=\"90951\" Date=\"12/04/2025\" NoOfRooms=\"1\" NoOfPax=\"2\" RatePlanId=\"CP\" Rate=\"3948.75\" Tax=\"473.85\"/>"
+        + "<RoomType ID=\"90951\" Date=\"13/04/2025\" NoOfRooms=\"1\" NoOfPax=\"2\" RatePlanId=\"CP\" Rate=\"3948.75\" Tax=\"473.85\"/>"
+        + "</Rates>"
+        + "</BookingRequest>"
+        + "</soapenv:Body>"
+        + "</soapenv:Envelope>";
+
+        // Send SOAP request
+        response = invokeurl
+        [
+            url : "https://purplekeys.in/CarmeliaHeaven_test/OTAbookingsUpdate.aspx"
+            type : POST
+            parameters : paramString_1
+            headers : headerMap
+            detailed : true
+        ];
+
+        info "SOAP Response: " + response.toString();
+
+        if(response.get("responseCode") == 200)
+        {
+            responseXML = response.get("responseText").toXML();
+            info "Parsed Response XML: " + responseXML.toString();
+            // Optionally parse XML nodes here
+        }
+        else
+        {
+            info "Failed to push booking. HTTP Code: " + response.get("responseCode");
+        }
+    }
+    else
+    {
+        info "Deal record not found for ID: " + id;
+    }
+}
